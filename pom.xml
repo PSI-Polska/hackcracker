@@ -5,6 +5,12 @@
     <artifactId>hack-cracker</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+	
+	<parent>
+		<groupId>de.psi.pjf</groupId>
+		<artifactId>pjf.master</artifactId>
+		<version>1.4.0</version>
+	</parent>
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
