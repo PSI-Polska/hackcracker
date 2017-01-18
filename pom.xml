@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.psi.pjf</groupId>
     <artifactId>hack-cracker</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 	
 	<parent>
@@ -24,9 +24,9 @@
     </modules>
 	
 	<scm>
-	  <connection>scm:svn:https://infra-bln-3-svn.psi.de/svn/incubator/hackcracker/tags/VER/1.0.0</connection>
-	  <developerConnection>scm:svn:https://infra-bln-3-svn.psi.de/svn/incubator/hackcracker/tags/VER/1.0.0</developerConnection>
-	  <url>https://infra-bln-3-svn.psi.de/svn/incubator/hackcracker/tags/VER/1.0.0</url>
+	  <connection>scm:svn:https://infra-bln-3-svn.psi.de/svn/incubator/hackcracker/trunk</connection>
+	  <developerConnection>scm:svn:https://infra-bln-3-svn.psi.de/svn/incubator/hackcracker/trunk</developerConnection>
+	  <url>https://infra-bln-3-svn.psi.de/svn/incubator/hackcracker/trunk</url>
 	</scm>
 	
 	<build>
