@@ -1,5 +1,7 @@
 package de.psi.pjf.hackcracker.annotation;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClientFactory;
 import com.atlassian.jira.rest.client.auth.AnonymousAuthenticationHandler;
@@ -11,6 +13,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -28,18 +31,38 @@ public class JiraConnectionsProvider
         JiraRestClient toReturn = CONNECTION_CACHE.get(jiraUrl);
         if (toReturn == null)
         {
-            toReturn = connectTo(jiraUrl);
+            toReturn = connectToWithLoggerOff(jiraUrl);
             CONNECTION_CACHE.put(jiraUrl, toReturn);
         }
         return Optional.ofNullable(toReturn);
     }
 
-    private static JiraRestClient connectTo(String aJiraUrl) throws URISyntaxException
+    /**
+     * A dirty hack so that one does not have to use logback.xml to configure logs.
+     * I do believe that forcing logging configuration in annotation processor 
+     * would be quite stupid, but I just as well might be wrong - after all I'm 
+     * not an slf4j expert and maybe it could be done quite efficiently.
+     * @param aJiraUrl
+     * @return
+     * @throws URISyntaxException 
+     */
+    private static JiraRestClient connectToWithLoggerOff(String aJiraUrl) throws URISyntaxException
     {
+        Logger logger = (Logger) LoggerFactory.getLogger("com.atlassian.jira.rest.client.internal.async.AsynchronousHttpClientFactory$MavenUtils");
+        Level oldLevel = logger.getLevel();
+        logger.setLevel(Level.OFF);
+        try {
+            return connectTo(aJiraUrl);
+        } finally {
+            logger.setLevel(oldLevel);
+        }
+    }
+
+    private static JiraRestClient connectTo(String aJiraUrl) throws URISyntaxException {
         JiraInstance instance = CONFIGURATION.getForName(aJiraUrl);
-        return instance == null ? 
-               connectToAnonymously(aJiraUrl) : 
-               connectToWithBasicAuthentication(instance.getUrl(),instance.getUser(),instance.getPassword());
+        return instance == null
+                ? connectToAnonymously(aJiraUrl)
+                : connectToWithBasicAuthentication(instance.getUrl(), instance.getUser(), instance.getPassword());
     }
 
     private static JiraRestClient connectToWithBasicAuthentication(String aJiraUrl, String aUser,
