@@ -5,6 +5,7 @@ import java.lang.annotation.Retention;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import java.lang.annotation.Target;
 import static de.psi.pjf.hackcracker.annotation.FixForIssue.IssueTrackerType.JIRA;
+import java.lang.annotation.Repeatable;
 
 /**
  * This annotation should be placed above an element that has been written only to overcome some issue and
@@ -42,6 +43,7 @@ import static de.psi.pjf.hackcracker.annotation.FixForIssue.IssueTrackerType.JIR
  * }
  * @author akedziora
  */
+@Repeatable(FixForIssues.class)
 @Target({TYPE,FIELD,LOCAL_VARIABLE,METHOD,PACKAGE,PARAMETER,TYPE_PARAMETER,TYPE_USE,ANNOTATION_TYPE})
 @Retention(SOURCE)
 public @interface FixForIssue

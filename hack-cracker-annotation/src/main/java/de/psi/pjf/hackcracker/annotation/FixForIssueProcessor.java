@@ -4,9 +4,9 @@ import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.Resolution;
 import java.net.URISyntaxException;
+import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Logger;
-import static java.util.logging.Logger.getLogger;
+import java.util.stream.Stream;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -23,12 +23,11 @@ import static javax.tools.Diagnostic.Kind.WARNING;
  * @author akedziora
  */
 @SupportedSourceVersion(RELEASE_8)
-@SupportedAnnotationTypes("de.psi.pjf.hackcracker.annotation.FixForIssue")
+@SupportedAnnotationTypes({
+    "de.psi.pjf.hackcracker.annotation.FixForIssue",
+    "de.psi.pjf.hackcracker.annotation.FixForIssues"})
 public class FixForIssueProcessor extends AbstractProcessor
 {
-
-    static final Logger log = getLogger(FixForIssueProcessor.class.getName());
-
     public FixForIssueProcessor()
     {
     }
@@ -37,38 +36,85 @@ public class FixForIssueProcessor extends AbstractProcessor
     public boolean process(
             Set<? extends TypeElement> aNnotations, RoundEnvironment aRoundEnv)
     {
-        aRoundEnv.getElementsAnnotatedWith(FixForIssue.class).stream().forEach(this::processElement);
+        Stream.concat(
+                aRoundEnv.getElementsAnnotatedWith(FixForIssues.class).stream(), 
+                aRoundEnv.getElementsAnnotatedWith(FixForIssue.class).stream()
+        ).forEach(this::processElement);
         return true;
     }
 
     private void processElement(Element e)
     {
-        AnnotationMirror annotationMirror = e.getAnnotationMirrors().stream().filter(
-                (AnnotationMirror aT) -> aT.getAnnotationType().asElement().getSimpleName().contentEquals(
-                        FixForIssue.class.getSimpleName())).findAny().get();
+        AnnotationMirror annotationMirror = getCorrectAnnotationMirror(e);
         try
         {
-            FixForIssue fixForIssue = e.getAnnotation(FixForIssue.class);
-            if (checkIssueIsResolved(fixForIssue))
-            {
-                processingEnv.getMessager().printMessage(ERROR, constructIssueMessage(fixForIssue), e,
-                                                         annotationMirror);
+            FixForIssues fixForIssues = e.getAnnotation(FixForIssues.class);
+            if(fixForIssues != null){
+                if(checkIfMultipleIssuesAreResolved(fixForIssues)){
+                    processingEnv.getMessager().printMessage(
+                            ERROR, constructIssueMessage(fixForIssues), e, annotationMirror);
+                }
+            }else{
+                FixForIssue fixForIssue = e.getAnnotation(FixForIssue.class);
+                if (checkIssueIsResolved(fixForIssue))
+                {
+                    processingEnv.getMessager().printMessage(
+                            ERROR, constructIssueMessage(fixForIssue), e, annotationMirror);
+                }   
             }
         }
         catch (Exception ex)
         {
-            processingEnv.getMessager().printMessage(WARNING, "there where problems when checking issue: "
-                                                              + ex.getMessage(), e, annotationMirror);
+            processingEnv.getMessager().printMessage(
+                    WARNING, "there where problems when checking issue: " + ex.getMessage(), e, annotationMirror);
         }
     }
 
+    private AnnotationMirror getCorrectAnnotationMirror(Element e) {
+        return getOptionalFixForIssuesAnnotationMirror(e).orElseGet(() -> getOptionalFixForIssueAnnotationMirror(e).get());
+    }
+    
+    private Optional<AnnotationMirror> getOptionalFixForIssuesAnnotationMirror(Element e) {
+        return e.getAnnotationMirrors().stream().filter(
+                (AnnotationMirror aT) -> 
+                        aT.getAnnotationType().asElement().getSimpleName()
+                                .contentEquals(FixForIssues.class.getSimpleName())
+        ).map(AnnotationMirror.class::cast).findAny();
+    }
+
+    private Optional<AnnotationMirror> getOptionalFixForIssueAnnotationMirror(Element e) {
+        return e.getAnnotationMirrors().stream().filter(
+                (AnnotationMirror aT) ->
+                        aT.getAnnotationType().asElement().getSimpleName()
+                                .contentEquals(FixForIssue.class.getSimpleName())
+        ).map(AnnotationMirror.class::cast).findAny();
+    }
+    
     private String constructIssueMessage(FixForIssue fixInformation)
     {
         return "Issue " + fixInformation.url() + "browse/" + fixInformation.issue()
                + " has been already resolved - you should now remove your hack.";
     }
+    
+    private String constructIssueMessage(FixForIssues fixInformation) {
+        String toReturn = fixInformation.needsAllIssuesResolved() ? "All issues :" : "At least one of issues: ";
+        for (FixForIssue fixForIssue : fixInformation.value()) {
+            toReturn = toReturn + "\n browse/" + fixForIssue.issue();
+        }
+        toReturn = toReturn + "\n has been already resolved - you should now remove your hack.";
+        return toReturn;
+    }
+    
+    private boolean checkIfMultipleIssuesAreResolved(FixForIssues fixInformation) throws URISyntaxException
+    {
+        if(fixInformation.needsAllIssuesResolved()){
+            return Stream.of(fixInformation.value()).allMatch(this::checkIssueIsResolved);
+        }else{
+            return Stream.of(fixInformation.value()).anyMatch(this::checkIssueIsResolved);
+        }
+    }
 
-    private boolean checkIssueIsResolved(FixForIssue fixInformation) throws URISyntaxException
+    private boolean checkIssueIsResolved(FixForIssue fixInformation)
     {
         String jiraUrl = fixInformation.url();
         String issue = fixInformation.issue();
@@ -94,14 +140,19 @@ public class FixForIssueProcessor extends AbstractProcessor
         }
     }
 
-    private Issue getIssue(String aJiraUrl, String aIssue) throws URISyntaxException
+    private Issue getIssue(String aJiraUrl, String aIssue)
     {
-        JiraRestClient connection = JiraConnectionsProvider.getConnection(aJiraUrl);
-        if (connection != null)
-        {
-            return connection.getIssueClient().getIssue(aIssue).claim();
+        try {
+            JiraRestClient connection = JiraConnectionsProvider.getConnection(aJiraUrl);
+            if (connection != null)
+            {
+                return connection.getIssueClient().getIssue(aIssue).claim();
+            }
+            return null;
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException(ex.getMessage(),ex);
         }
-        return null;
     }
+
 
 }
