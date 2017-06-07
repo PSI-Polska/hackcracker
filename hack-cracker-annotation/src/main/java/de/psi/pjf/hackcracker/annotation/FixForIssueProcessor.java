@@ -121,9 +121,9 @@ public class FixForIssueProcessor extends AbstractProcessor
         return checkIssueResolvedStatus(getIssue(jiraUrl, issue));
     }
 
-    private boolean checkIssueResolvedStatus(Issue issue)
+    private boolean checkIssueResolvedStatus(Optional<Issue> issue)
     {
-        return issue != null && resolutionInResolved(issue.getResolution());
+        return issue.isPresent() && resolutionInResolved(issue.get().getResolution());
     }
 
     private boolean resolutionInResolved(Resolution r)
@@ -140,15 +140,10 @@ public class FixForIssueProcessor extends AbstractProcessor
         }
     }
 
-    private Issue getIssue(String aJiraUrl, String aIssue)
+    private Optional<Issue> getIssue(String aJiraUrl, String aIssue)
     {
         try {
-            JiraRestClient connection = JiraConnectionsProvider.getConnection(aJiraUrl);
-            if (connection != null)
-            {
-                return connection.getIssueClient().getIssue(aIssue).claim();
-            }
-            return null;
+            return JiraConnectionsProvider.getConnection(aJiraUrl).map((JiraRestClient c) -> c.getIssueClient().getIssue(aIssue).claim());
         } catch (URISyntaxException ex) {
             throw new RuntimeException(ex.getMessage(),ex);
         }

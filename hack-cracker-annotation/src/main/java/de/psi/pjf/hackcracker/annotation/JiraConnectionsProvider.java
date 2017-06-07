@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  *
@@ -22,7 +23,7 @@ public class JiraConnectionsProvider
     private static final JiraRestClientFactory FACTORY = new AsynchronousJiraRestClientFactory();
     private static final IssueTrackerConfiguration CONFIGURATION = IssueTrackerConfiguration.getConfiguration();
 
-    static JiraRestClient getConnection(String jiraUrl) throws URISyntaxException
+    static Optional<JiraRestClient> getConnection(String jiraUrl) throws URISyntaxException
     {
         JiraRestClient toReturn = CONNECTION_CACHE.get(jiraUrl);
         if (toReturn == null)
@@ -30,7 +31,7 @@ public class JiraConnectionsProvider
             toReturn = connectTo(jiraUrl);
             CONNECTION_CACHE.put(jiraUrl, toReturn);
         }
-        return toReturn;
+        return Optional.ofNullable(toReturn);
     }
 
     private static JiraRestClient connectTo(String aJiraUrl) throws URISyntaxException
