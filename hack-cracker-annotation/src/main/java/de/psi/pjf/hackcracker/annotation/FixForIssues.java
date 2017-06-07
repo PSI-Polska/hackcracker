@@ -33,7 +33,9 @@ public @interface FixForIssues {
      * Defaults to true.
      * Funny fact: originally I wanted this to be enum - unfortunatelly this 
      * triggers a bug in jdk - I probably should submit it and use the 
-     * @FixForIssue annotation here :).
+     * @FixForIssue annotation here :) but unfortunately annotation processing
+     * has to be switched off during annotation compilation as the annotations 
+     * do not yet exist.
      * @return how issues are connected.
      */
     boolean needsAllIssuesResolved() default true;
