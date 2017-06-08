@@ -3,10 +3,6 @@ package sample.code.that.should.compile;
 import de.psi.pjf.hackcracker.annotation.FixForIssue;
 import de.psi.pjf.hackcracker.annotation.IgnoreIssueResolved;
 
-/**
- *
- * @author akedziora
- */
 @IgnoreIssueResolved(
         versionUsed = "0.1.0", 
         versionResolved = "1.36.0", 
@@ -18,9 +14,6 @@ import de.psi.pjf.hackcracker.annotation.IgnoreIssueResolved;
 public class SampleMain
 {
 
-    /**
-     * @param args the command line arguments
-     */
     @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-36")
     public static void main(String[] args)
     {
