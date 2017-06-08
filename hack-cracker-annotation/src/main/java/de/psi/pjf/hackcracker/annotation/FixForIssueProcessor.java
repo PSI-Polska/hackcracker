@@ -3,9 +3,12 @@ package de.psi.pjf.hackcracker.annotation;
 import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.Resolution;
+import com.atlassian.jira.rest.client.api.domain.Version;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -16,6 +19,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import static javax.tools.Diagnostic.Kind.ERROR;
+import static javax.tools.Diagnostic.Kind.MANDATORY_WARNING;
 import static javax.tools.Diagnostic.Kind.WARNING;
 
 /**
@@ -25,7 +29,8 @@ import static javax.tools.Diagnostic.Kind.WARNING;
 @SupportedSourceVersion(RELEASE_8)
 @SupportedAnnotationTypes({
     "de.psi.pjf.hackcracker.annotation.FixForIssue",
-    "de.psi.pjf.hackcracker.annotation.FixForIssues"})
+    "de.psi.pjf.hackcracker.annotation.FixForIssues",
+    "de.psi.pjf.hackcracker.annotation.IgnoreIssueResolved"})
 public class FixForIssueProcessor extends AbstractProcessor
 {
     public FixForIssueProcessor()
@@ -45,33 +50,93 @@ public class FixForIssueProcessor extends AbstractProcessor
 
     private void processElement(Element e)
     {
-        AnnotationMirror annotationMirror = getCorrectAnnotationMirror(e);
         try
         {
-            FixForIssues fixForIssues = e.getAnnotation(FixForIssues.class);
-            if(fixForIssues != null){
-                if(checkIfMultipleIssuesAreResolved(fixForIssues)){
-                    processingEnv.getMessager().printMessage(
-                            ERROR, constructIssueMessage(fixForIssues), e, annotationMirror);
-                }
+            if(e.getAnnotation(IgnoreIssueResolved.class) == null){
+                processElementWithoutIgnore(e);
             }else{
-                FixForIssue fixForIssue = e.getAnnotation(FixForIssue.class);
-                if (checkIssueIsResolved(fixForIssue))
-                {
-                    processingEnv.getMessager().printMessage(
-                            ERROR, constructIssueMessage(fixForIssue), e, annotationMirror);
-                }   
+                processElementWithIgnore(e);
             }
         }
         catch (Exception ex)
         {
             processingEnv.getMessager().printMessage(
-                    WARNING, "there where problems when checking issue: " + ex.getMessage(), e, annotationMirror);
+                    WARNING, "there where problems when checking issue: " + ex.getMessage(), e, getCorrectAnnotationMirror(e));
+        }
+    }
+
+    private void processElementWithoutIgnore(Element e) throws URISyntaxException {
+        FixForIssues fixForIssues = e.getAnnotation(FixForIssues.class);
+        if(fixForIssues != null){
+            if(checkIfMultipleIssuesAreResolved(fixForIssues)){
+                processingEnv.getMessager().printMessage(
+                        ERROR, constructIssueMessage(fixForIssues), e, getCorrectAnnotationMirror(e));
+            }
+        }else{
+            FixForIssue fixForIssue = e.getAnnotation(FixForIssue.class);
+            if(fixForIssue != null){
+                if (checkIssueIsResolved(fixForIssue))
+                {
+                    processingEnv.getMessager().printMessage(
+                            ERROR, constructIssueMessage(fixForIssue), e, getCorrectAnnotationMirror(e));
+                }
+            }
+        }
+    }
+    
+    private void processElementWithIgnore(Element e){
+        IgnoreIssueResolved ignore = e.getAnnotation(IgnoreIssueResolved.class);
+        FixForIssue[] fixForIssues = e.getAnnotationsByType(FixForIssue.class);
+        checkReasonForIgnore(ignore, e);
+        checkIfFixForIssueIsPresent(fixForIssues, e);
+        String msg = constructMessageForIgnore(fixForIssues, ignore);
+        processingEnv.getMessager().printMessage(MANDATORY_WARNING, msg, e, getOptionalIgnoreIssueResolvedAnnotationMirror(e).get());
+    }
+
+    private String constructMessageForIgnore(FixForIssue[] fixForIssues, IgnoreIssueResolved ignore) {
+        List<FixForIssue> fixedIssues = Stream.of(fixForIssues).filter(this::checkIssueIsResolved).collect(Collectors.toList());
+        String msg = fixedIssues.isEmpty() ? 
+                "There is an IgnoreIssueResolved annotation placed but no declared issues are resolved, this indicates that someone put the IgnoreIssueResolved has been placed prematurely!":
+                "There is an IgnoreIssueResolved annotation placed over following resolved issues:";
+        for (FixForIssue fixedIssue : fixedIssues) {
+            msg = msg + "\n" + constructIssueMessage(fixedIssue);
+        }
+        msg = msg + "\n" + "indicated used version is: " + ignore.versionUsed();
+        msg = msg + "\n" + "indicated fixed version is: " + ignore.versionResolved();
+        msg = msg + "\n" + "reason for not removing the hack is: " + ignore.reasoningWhyHackCannotBeRemoved();
+        msg = msg + "\n";
+        return msg;
+    }
+
+    private void checkIfFixForIssueIsPresent(FixForIssue[] fixForIssues, Element e) {
+        if(fixForIssues.length == 0){
+            processingEnv.getMessager().printMessage( ERROR,
+                    "IgnoreIssueResolved can be used only with FixForIssue or nonempty FixForIssues present !",
+                    e , getOptionalIgnoreIssueResolvedAnnotationMirror(e).get() );
+        }
+    }
+
+    private void checkReasonForIgnore(IgnoreIssueResolved ignore, Element e) {
+        if(ignore.reasoningWhyHackCannotBeRemoved() == null || ignore.reasoningWhyHackCannotBeRemoved().trim().length() < 128){
+            processingEnv.getMessager().printMessage( ERROR,
+                    "reasoning for why hack cannot be removed has to be present and at least reasonable 128 characters long!",
+                    e , getOptionalIgnoreIssueResolvedAnnotationMirror(e).get() );
         }
     }
 
     private AnnotationMirror getCorrectAnnotationMirror(Element e) {
-        return getOptionalFixForIssuesAnnotationMirror(e).orElseGet(() -> getOptionalFixForIssueAnnotationMirror(e).get());
+        return getOptionalFixForIssuesAnnotationMirror(e)
+                .orElseGet(() -> getOptionalFixForIssueAnnotationMirror(e)
+                        .orElseGet(() -> getOptionalIgnoreIssueResolvedAnnotationMirror(e).get())
+                );
+    }
+    
+    private Optional<AnnotationMirror> getOptionalIgnoreIssueResolvedAnnotationMirror(Element e) {
+        return e.getAnnotationMirrors().stream().filter(
+                (AnnotationMirror aT) -> 
+                        aT.getAnnotationType().asElement().getSimpleName()
+                                .contentEquals(IgnoreIssueResolved.class.getSimpleName())
+        ).map(AnnotationMirror.class::cast).findAny();
     }
     
     private Optional<AnnotationMirror> getOptionalFixForIssuesAnnotationMirror(Element e) {
@@ -118,36 +183,7 @@ public class FixForIssueProcessor extends AbstractProcessor
     {
         String jiraUrl = fixInformation.url();
         String issue = fixInformation.issue();
-        return checkIssueResolvedStatus(getIssue(jiraUrl, issue));
+        return JiraConnectionsProvider.checkIssueResolved(jiraUrl, issue);
     }
-
-    private boolean checkIssueResolvedStatus(Optional<Issue> issue)
-    {
-        return issue.isPresent() && resolutionInResolved(issue.get().getResolution());
-    }
-
-    private boolean resolutionInResolved(Resolution r)
-    {
-        if (r == null)
-        {
-            return false;
-        }
-        switch (r.getName())
-        {
-            case "Done":
-            case "Fixed": return true;
-            default: return false;
-        }
-    }
-
-    private Optional<Issue> getIssue(String aJiraUrl, String aIssue)
-    {
-        try {
-            return JiraConnectionsProvider.getConnection(aJiraUrl).map((JiraRestClient c) -> c.getIssueClient().getIssue(aIssue).claim());
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException(ex.getMessage(),ex);
-        }
-    }
-
 
 }
