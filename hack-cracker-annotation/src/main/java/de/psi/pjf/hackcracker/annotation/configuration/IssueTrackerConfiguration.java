@@ -10,6 +10,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -42,6 +43,9 @@ public class IssueTrackerConfiguration
         }
     }
     
+    @XmlAttribute
+    private boolean switchOff = false;
+    
     public JiraInstance getForName(String name){
         return jiraInstances.stream().filter(i -> name.equals(i.getUrl())).findAny().orElse(null);
     }
@@ -63,6 +67,10 @@ public class IssueTrackerConfiguration
             configuration = new IssueTrackerConfiguration();
         }
         return configuration;
+    }
+
+    public boolean isSwitchOff() {
+        return switchOff;
     }
     
 }
