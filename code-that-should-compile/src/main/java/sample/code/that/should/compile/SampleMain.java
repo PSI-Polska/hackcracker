@@ -11,7 +11,7 @@ import de.psi.pjf.hackcracker.annotation.IgnoreIssueResolved;
                 + "would write here why he cannot use the newer version. but this "
                 + "time there is only some blabering from me")
 @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-10")
-@FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-11")
+@FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-200")
 public class SampleMain
 {
 
