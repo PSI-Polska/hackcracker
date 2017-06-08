@@ -1,5 +1,6 @@
 package de.psi.pjf.hackcracker.annotation;
 
+import de.psi.pjf.hackcracker.jira.JiraIssueChecker;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
@@ -180,9 +181,12 @@ public class FixForIssueProcessor extends AbstractProcessor
 
     private boolean checkIssueIsResolved(FixForIssue fixInformation)
     {
-        String jiraUrl = fixInformation.url();
-        String issue = fixInformation.issue();
-        return JiraConnectionsProvider.checkIssueResolved(jiraUrl, issue);
+        switch (fixInformation.trackerType()){
+            case JIRA :
+                return JiraIssueChecker.checkIssueResolved(fixInformation);
+            default: 
+                return false;
+        }
     }
 
 }

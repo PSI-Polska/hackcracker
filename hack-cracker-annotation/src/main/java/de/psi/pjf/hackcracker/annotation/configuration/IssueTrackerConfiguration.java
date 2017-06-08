@@ -1,6 +1,6 @@
 package de.psi.pjf.hackcracker.annotation.configuration;
 
-import de.psi.pjf.hackcracker.annotation.JiraConnectionsProvider;
+import de.psi.pjf.hackcracker.jira.JiraIssueChecker;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +58,7 @@ public class IssueTrackerConfiguration
         }
         catch (JAXBException ex)
         {
-            Logger.getLogger(JiraConnectionsProvider.class.getName())
+            Logger.getLogger(JiraIssueChecker.class.getName())
                     .log(Level.WARNING,"there was an exception when reading user issue tracker configuration",ex);
             configuration = new IssueTrackerConfiguration();
         }

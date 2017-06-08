@@ -1,4 +1,4 @@
-package de.psi.pjf.hackcracker.annotation;
+package de.psi.pjf.hackcracker.jira;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -8,6 +8,9 @@ import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.Resolution;
 import com.atlassian.jira.rest.client.auth.AnonymousAuthenticationHandler;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
+import com.google.common.base.Preconditions;
+import de.psi.pjf.hackcracker.annotation.FixForIssue;
+import static de.psi.pjf.hackcracker.annotation.FixForIssue.IssueTrackerType.JIRA;
 import de.psi.pjf.hackcracker.annotation.configuration.IssueTrackerConfiguration;
 import de.psi.pjf.hackcracker.annotation.configuration.IssueTrackerConfiguration.JiraInstance;
 import java.net.URI;
@@ -22,18 +25,19 @@ import org.slf4j.LoggerFactory;
  *
  * @author akedziora
  */
-public class JiraConnectionsProvider
+public class JiraIssueChecker
 {
 
     private static final Map<String, JiraRestClient> CONNECTION_CACHE = new HashMap<>();
     private static final JiraRestClientFactory FACTORY = new AsynchronousJiraRestClientFactory();
     private static final IssueTrackerConfiguration CONFIGURATION = IssueTrackerConfiguration.getConfiguration();
     
-    public static boolean checkIssueResolved(String aJiraUrl, String aIssue)
+    public static boolean checkIssueResolved(FixForIssue issueInformation)
     {
+        Preconditions.checkArgument(issueInformation.trackerType().equals(JIRA));
         return internalCheckIssueResolvedWithLoggersOff( 
-                aJiraUrl, 
-                aIssue, 
+                issueInformation.url(), 
+                issueInformation.issue(), 
                 "com.atlassian.jira.rest.client.internal.async.AsynchronousHttpClientFactory$MavenUtils",
                 "com.atlassian.httpclient.apache.httpcomponents.cache.FlushableHttpCacheStorageImpl");
     }
