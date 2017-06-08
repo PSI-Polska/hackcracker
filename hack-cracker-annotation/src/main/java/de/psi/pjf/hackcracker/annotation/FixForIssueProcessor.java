@@ -43,7 +43,7 @@ public class FixForIssueProcessor extends AbstractProcessor
                         aRoundEnv.getElementsAnnotatedWith(FixForIssue.class).stream(),
                         aRoundEnv.getElementsAnnotatedWith(IgnoreIssueResolved.class).stream()
                 )
-        ).forEach(this::processElement);
+        ).distinct().forEach(this::processElement);
         return true;
     }
 

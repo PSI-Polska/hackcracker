@@ -27,4 +27,11 @@ public class SampleMain
         System.out.println("Hello world");
     }
     
+    @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-10")
+    @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-200")
+    private void test()
+    {
+        System.out.println("Hello world");
+    }
+    
 }
