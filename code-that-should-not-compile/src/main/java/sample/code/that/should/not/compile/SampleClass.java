@@ -4,22 +4,19 @@ import de.psi.pjf.hackcracker.annotation.FixForIssue;
 import de.psi.pjf.hackcracker.annotation.FixForIssues;
 import de.psi.pjf.hackcracker.annotation.IgnoreIssueResolved;
 
-/**
- *
- * @author akedziora
- */
-@FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-10")
-@FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-11")
+
+@FixForIssues(
+value = {
+    @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-10"),
+    @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-11")
+},
+needsAllIssuesResolved = true
+)
 public class SampleClass
 {
     
-    @FixForIssues(
-    value = {
-        @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-10"),
-        @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-200")
-    },
-    needsAllIssuesResolved = false
-    )
+    @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-10")
+    @FixForIssue(url = "http://jira-bld-ppl.psi.de:8080/", issue = "CMDTF-200")
     public static void main(String ... args){
         
     }
