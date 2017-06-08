@@ -1,9 +1,5 @@
 package de.psi.pjf.hackcracker.annotation;
 
-import com.atlassian.jira.rest.client.api.JiraRestClient;
-import com.atlassian.jira.rest.client.api.domain.Issue;
-import com.atlassian.jira.rest.client.api.domain.Resolution;
-import com.atlassian.jira.rest.client.api.domain.Version;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +39,10 @@ public class FixForIssueProcessor extends AbstractProcessor
     {
         Stream.concat(
                 aRoundEnv.getElementsAnnotatedWith(FixForIssues.class).stream(), 
-                aRoundEnv.getElementsAnnotatedWith(FixForIssue.class).stream()
+                Stream.concat(
+                        aRoundEnv.getElementsAnnotatedWith(FixForIssue.class).stream(),
+                        aRoundEnv.getElementsAnnotatedWith(IgnoreIssueResolved.class).stream()
+                )
         ).forEach(this::processElement);
         return true;
     }
@@ -87,8 +86,8 @@ public class FixForIssueProcessor extends AbstractProcessor
     private void processElementWithIgnore(Element e){
         IgnoreIssueResolved ignore = e.getAnnotation(IgnoreIssueResolved.class);
         FixForIssue[] fixForIssues = e.getAnnotationsByType(FixForIssue.class);
-        checkReasonForIgnore(ignore, e);
         checkIfFixForIssueIsPresent(fixForIssues, e);
+        checkReasonForIgnore(ignore, e);
         String msg = constructMessageForIgnore(fixForIssues, ignore);
         processingEnv.getMessager().printMessage(MANDATORY_WARNING, msg, e, getOptionalIgnoreIssueResolvedAnnotationMirror(e).get());
     }
