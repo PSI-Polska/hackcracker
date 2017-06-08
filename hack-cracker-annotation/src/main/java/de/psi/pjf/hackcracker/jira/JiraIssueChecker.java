@@ -30,7 +30,7 @@ public class JiraIssueChecker
 
     private static final Map<String, JiraRestClient> CONNECTION_CACHE = new HashMap<>();
     private static final JiraRestClientFactory FACTORY = new AsynchronousJiraRestClientFactory();
-    private static final IssueTrackerConfiguration CONFIGURATION = IssueTrackerConfiguration.getConfiguration();
+    private static final IssueTrackerConfiguration CONFIGURATION = IssueTrackerConfiguration.CONFIGURATION;
     
     public static boolean checkIssueResolved(FixForIssue issueInformation)
     {
