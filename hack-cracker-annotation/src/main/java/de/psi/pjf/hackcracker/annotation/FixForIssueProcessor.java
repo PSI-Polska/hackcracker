@@ -1,5 +1,6 @@
 package de.psi.pjf.hackcracker.annotation;
 
+import de.psi.pjf.hackcracker.annotation.configuration.IssueTrackerConfiguration;
 import de.psi.pjf.hackcracker.jira.JiraIssueChecker;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -66,7 +67,6 @@ public class FixForIssueProcessor extends AbstractProcessor
     }
 
     private void processElementWithoutIgnore(Element e) throws URISyntaxException {
-        
         if(e.getAnnotation(FixForIssues.class) != null)
         {
             processElementForMultipleIssues(e);
@@ -82,7 +82,8 @@ public class FixForIssueProcessor extends AbstractProcessor
         if(checkIfMultipleIssuesAreResolved(fixForIssues))
         {
             processingEnv.getMessager().printMessage(
-                    ERROR, constructMultipleIssuesMessage(fixForIssues), e, getCorrectAnnotationMirror(e));
+                    IssueTrackerConfiguration.CONFIGURATION.isSwitchOff() ? MANDATORY_WARNING : ERROR, 
+                    constructMultipleIssuesMessage(fixForIssues), e, getCorrectAnnotationMirror(e));
         }
     }
     
@@ -91,7 +92,8 @@ public class FixForIssueProcessor extends AbstractProcessor
         if (checkIssueIsResolved(fixForIssue))
         {
             processingEnv.getMessager().printMessage(
-                    ERROR, constructIssueMessage(fixForIssue), e, getCorrectAnnotationMirror(e));
+                    IssueTrackerConfiguration.CONFIGURATION.isSwitchOff() ? MANDATORY_WARNING : ERROR, 
+                    constructIssueMessage(fixForIssue), e, getCorrectAnnotationMirror(e));
         }
     }
     
