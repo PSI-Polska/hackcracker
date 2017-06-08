@@ -66,21 +66,32 @@ public class FixForIssueProcessor extends AbstractProcessor
     }
 
     private void processElementWithoutIgnore(Element e) throws URISyntaxException {
+        
+        if(e.getAnnotation(FixForIssues.class) != null)
+        {
+            processElementForMultipleIssues(e);
+        }
+        else if(e.getAnnotation(FixForIssue.class) != null)
+        {
+            processElementForSingleIssue(e);
+        }
+    }
+
+    private void processElementForMultipleIssues(Element e) throws URISyntaxException {
         FixForIssues fixForIssues = e.getAnnotation(FixForIssues.class);
-        if(fixForIssues != null){
-            if(checkIfMultipleIssuesAreResolved(fixForIssues)){
-                processingEnv.getMessager().printMessage(
-                        ERROR, constructIssueMessage(fixForIssues), e, getCorrectAnnotationMirror(e));
-            }
-        }else{
-            FixForIssue fixForIssue = e.getAnnotation(FixForIssue.class);
-            if(fixForIssue != null){
-                if (checkIssueIsResolved(fixForIssue))
-                {
-                    processingEnv.getMessager().printMessage(
-                            ERROR, constructIssueMessage(fixForIssue), e, getCorrectAnnotationMirror(e));
-                }
-            }
+        if(checkIfMultipleIssuesAreResolved(fixForIssues))
+        {
+            processingEnv.getMessager().printMessage(
+                    ERROR, constructMultipleIssuesMessage(fixForIssues), e, getCorrectAnnotationMirror(e));
+        }
+    }
+    
+    private void processElementForSingleIssue(Element e) {
+        FixForIssue fixForIssue = e.getAnnotation(FixForIssue.class);
+        if (checkIssueIsResolved(fixForIssue))
+        {
+            processingEnv.getMessager().printMessage(
+                    ERROR, constructIssueMessage(fixForIssue), e, getCorrectAnnotationMirror(e));
         }
     }
     
@@ -161,10 +172,10 @@ public class FixForIssueProcessor extends AbstractProcessor
                + " has been already resolved - you should now remove your hack.";
     }
     
-    private String constructIssueMessage(FixForIssues fixInformation) {
+    private String constructMultipleIssuesMessage(FixForIssues fixInformation) {
         String toReturn = fixInformation.needsAllIssuesResolved() ? "All issues :" : "At least one of issues: ";
         for (FixForIssue fixForIssue : fixInformation.value()) {
-            toReturn = toReturn + "\n browse/" + fixForIssue.issue();
+            toReturn = toReturn + "\n" +fixForIssue.url() + "browse/" + fixForIssue.issue();
         }
         toReturn = toReturn + "\n has been already resolved - you should now remove your hack.";
         return toReturn;
