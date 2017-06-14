@@ -50,6 +50,27 @@ public class IssueTrackerConfiguration
     @XmlAttribute
     private String switchOff = "false";
     
+    /**
+     * There is a bug in maven that requires following configuration in compiler to actually see verbose output:
+     * {@code 
+     *      <project>
+    <!-- Add the following compiler configuration to make
+      - annotation processor messages show up in Maven output.
+      -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <showWarnings>true</showWarnings>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+     * }
+     */
     @XmlAttribute
     private String verbose = "false";
     
