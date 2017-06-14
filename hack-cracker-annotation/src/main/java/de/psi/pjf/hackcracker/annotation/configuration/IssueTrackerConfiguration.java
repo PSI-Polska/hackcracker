@@ -48,7 +48,10 @@ public class IssueTrackerConfiguration
     }
     
     @XmlAttribute
-    private boolean switchOff = false;
+    private String switchOff = "false";
+    
+    @XmlAttribute
+    private String verbose = "false";
     
     public JiraInstance getForName(String name){
         return jiraInstances.stream().filter(i -> name.equals(i.getUrl())).findAny().orElse(null);
@@ -74,7 +77,10 @@ public class IssueTrackerConfiguration
     }
 
     public boolean isSwitchOff() {
-        return switchOff;
+        return Boolean.parseBoolean(switchOff);
     }
-    
+
+    public boolean isVerbose() {
+        return Boolean.parseBoolean(verbose);
+    }
 }

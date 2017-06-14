@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+<configuration verbose="true" >
     <jira>
         <url>http://jira-bld-ppl.psi.de:8080/</url>
-        <user>put_your_user_here</user>
-        <password>put_yeur_user_here</password>
+        <user>akedziora</user>
+        <password>akedziora</password>
     </jira>
 </configuration>

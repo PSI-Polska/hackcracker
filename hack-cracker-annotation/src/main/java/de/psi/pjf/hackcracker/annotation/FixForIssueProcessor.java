@@ -16,6 +16,7 @@ import static javax.lang.model.SourceVersion.RELEASE_8;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
 import static javax.tools.Diagnostic.Kind.ERROR;
 import static javax.tools.Diagnostic.Kind.MANDATORY_WARNING;
 import static javax.tools.Diagnostic.Kind.WARNING;
@@ -62,7 +63,7 @@ public class FixForIssueProcessor extends AbstractProcessor
         catch (Exception ex)
         {
             processingEnv.getMessager().printMessage(
-                    WARNING, "there where problems when checking issue: " + ex.getMessage(), e, getCorrectAnnotationMirror(e));
+                    MANDATORY_WARNING, "there where problems when checking issue: " + ex.getMessage(), e, getCorrectAnnotationMirror(e));
         }
     }
 
@@ -79,21 +80,33 @@ public class FixForIssueProcessor extends AbstractProcessor
 
     private void processElementForMultipleIssues(Element e) throws URISyntaxException {
         FixForIssues fixForIssues = e.getAnnotation(FixForIssues.class);
+        AnnotationMirror correctAnnotationMirror = getCorrectAnnotationMirror(e);
         if(checkIfMultipleIssuesAreResolved(fixForIssues))
         {
             processingEnv.getMessager().printMessage(
                     IssueTrackerConfiguration.CONFIGURATION.isSwitchOff() ? MANDATORY_WARNING : ERROR, 
-                    constructMultipleIssuesMessage(fixForIssues), e, getCorrectAnnotationMirror(e));
+                    constructMultipleIssuesMessage(fixForIssues), 
+                    e, correctAnnotationMirror);
+        }else if(IssueTrackerConfiguration.CONFIGURATION.isVerbose()){
+            processingEnv.getMessager().printMessage(
+                    Diagnostic.Kind.NOTE, 
+                    constructVerboseMessage(fixForIssues), 
+                    e, correctAnnotationMirror);
         }
     }
     
     private void processElementForSingleIssue(Element e) {
         FixForIssue fixForIssue = e.getAnnotation(FixForIssue.class);
+        AnnotationMirror correctAnnotationMirror = getCorrectAnnotationMirror(e);
         if (checkIssueIsResolved(fixForIssue))
         {
+            processingEnv.getMessager().printMessage(IssueTrackerConfiguration.CONFIGURATION.isSwitchOff() ? MANDATORY_WARNING : ERROR, 
+                    constructIssueMessage(fixForIssue), e, correctAnnotationMirror);
+        }else if(IssueTrackerConfiguration.CONFIGURATION.isVerbose()){
             processingEnv.getMessager().printMessage(
-                    IssueTrackerConfiguration.CONFIGURATION.isSwitchOff() ? MANDATORY_WARNING : ERROR, 
-                    constructIssueMessage(fixForIssue), e, getCorrectAnnotationMirror(e));
+                    Diagnostic.Kind.NOTE, 
+                    constructVerboseMessage(fixForIssue), 
+                    e, correctAnnotationMirror);
         }
     }
     
@@ -200,6 +213,29 @@ public class FixForIssueProcessor extends AbstractProcessor
             default: 
                 return false;
         }
+    }
+
+    private String constructVerboseMessage(FixForIssues fixForIssues) {
+        String toReturn = "";
+        for (FixForIssue fixForIssue : fixForIssues.value()) {
+            toReturn += constructVerboseMessage(fixForIssue)+"\n";
+        }
+        return toReturn;
+    }
+    
+    private String constructVerboseMessage(FixForIssue fixForIssue) {
+        switch (fixForIssue.trackerType()){
+            case JIRA :
+                return JiraIssueChecker.constructVerboseMessageForIssue(fixForIssue);
+            default: 
+                return constructMessageForUnknownIssueTracker(fixForIssue) ;
+        }
+    }
+
+    private static String constructMessageForUnknownIssueTracker(FixForIssue fixForIssue) {
+        return "an unknown issue tracker has been requested: "+fixForIssue.trackerType()
+                +" with url: "+fixForIssue.url()
+                +" and issue: "+fixForIssue.issue();
     }
 
 }

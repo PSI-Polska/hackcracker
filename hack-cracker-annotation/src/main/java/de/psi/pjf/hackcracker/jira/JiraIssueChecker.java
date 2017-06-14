@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClientFactory;
+import com.atlassian.jira.rest.client.api.domain.Comment;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.Resolution;
 import com.atlassian.jira.rest.client.auth.AnonymousAuthenticationHandler;
@@ -19,6 +20,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -35,43 +37,40 @@ public class JiraIssueChecker
     public static boolean checkIssueResolved(FixForIssue issueInformation)
     {
         Preconditions.checkArgument(issueInformation.trackerType().equals(JIRA));
-        return internalCheckIssueResolvedWithLoggersOff( 
-                issueInformation.url(), 
-                issueInformation.issue(), 
+        return runWithLoggersOff(() -> {
+            Optional<Issue> issue = getIssueOptional(issueInformation);
+            return issue.isPresent() && resolutionInResolved(issue.get().getResolution());
+        });
+    }
+
+    private static Optional<Issue> getIssueOptional(FixForIssue issueInformation) throws URISyntaxException {
+        return getConnection(issueInformation.url())
+                .map((JiraRestClient c) -> c.getIssueClient().getIssue(issueInformation.issue()).claim());
+    }
+    
+    private static <T> T runWithLoggersOff(Callable<T> toRun){
+        return runWithLoggersOff(
+                toRun, 
                 "com.atlassian.jira.rest.client.internal.async.AsynchronousHttpClientFactory$MavenUtils",
                 "com.atlassian.httpclient.apache.httpcomponents.cache.FlushableHttpCacheStorageImpl");
     }
     
-    /**
-     * A dirty hack so that one does not have to use logback.xml to configure logs.
-     * I do believe that forcing logging configuration in annotation processor 
-     * would be quite stupid, but I just as well might be wrong - after all I'm 
-     * not an slf4j expert and maybe it could be done quite efficiently.
-     * @param aJiraUrl that will be passed to connectTo
-     * @return client that connectTo will return
-     * @throws URISyntaxException 
-     */
-    private static boolean internalCheckIssueResolvedWithLoggersOff(String aJiraUrl, String aIssue, String ... loggers){
+    private static <T> T runWithLoggersOff(Callable<T> toRun, String ... loggers){
         if(loggers.length > 0){
             Logger logger = (Logger) LoggerFactory.getLogger(loggers[0]);        
             Level oldLevel = logger.getLevel();
             logger.setLevel(Level.OFF);
             try {
-                return internalCheckIssueResolvedWithLoggersOff(aJiraUrl, aIssue, Arrays.copyOfRange(loggers, 1, loggers.length));
+                return runWithLoggersOff(toRun, Arrays.copyOfRange(loggers, 1, loggers.length));
             } finally {
                 logger.setLevel(oldLevel);
             }
         }else{
-            return internalCheckIssueResolved(aJiraUrl, aIssue);
-        }
-    }
-
-    private static boolean internalCheckIssueResolved(String aJiraUrl, String aIssue){
-        try {
-            Optional<Issue> issue = getConnection(aJiraUrl).map((JiraRestClient c) -> c.getIssueClient().getIssue(aIssue).claim());
-            return issue.isPresent() && resolutionInResolved(issue.get().getResolution());
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException(ex.getMessage(),ex);
+            try {
+                return toRun.call();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
         }
     }
 
@@ -120,6 +119,42 @@ public class JiraIssueChecker
         URI uri = new URI(aJiraUrl);
         JiraRestClient client = FACTORY.create(uri, new AnonymousAuthenticationHandler());
         return client;
+    }
+
+    public static String constructVerboseMessageForIssue(FixForIssue issueInformation) {
+        Preconditions.checkArgument(issueInformation.trackerType().equals(JIRA));
+        return runWithLoggersOff(() -> {
+            Optional<Issue> issue = getIssueOptional(issueInformation);
+            return issue.isPresent() ? constructVerboseMessageForIssue(issue.get()) : constructFailMessageForIssue(issueInformation) ;
+        });
+    }
+    
+    private static String constructVerboseMessageForIssue(Issue issue){
+        return "Issue: "+issue.getKey()+" retrieved successfully \n"+
+                "summary: "+issue.getSummary()+"\n"+
+                "description: "+issue.getDescription()+"\n"+
+                "resolution: "+(issue.getResolution() != null ? issue.getResolution().getName() : null)+"\n"+
+                "created: "+issue.getCreationDate()+"\n"+
+                "due date: "+issue.getDueDate()+"\n"+
+                constructMessageForComments(issue.getComments())+"\n";
+    }
+
+    private static String constructFailMessageForIssue(FixForIssue issueInformation) {
+        return "failed to retrieve issue: "
+                +issueInformation.issue()
+                +" form jira: "
+                +issueInformation.url()
+                +" most likely issue doesn't exist on it";
+    }
+
+    private static String constructMessageForComments(Iterable<Comment> comments) {
+        String toReturn = "comments: \n";
+        for (Comment comment : comments) {
+            toReturn += "date: " + comment.getCreationDate() +  
+                    (comment.getAuthor() != null ? " author: "+ comment.getAuthor().getDisplayName() : "")+"\n";
+            toReturn += "comment: "+comment.getBody()+"\n\n";
+        }
+        return toReturn;
     }
 
 }
