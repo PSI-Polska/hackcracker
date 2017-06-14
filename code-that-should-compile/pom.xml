@@ -4,17 +4,17 @@
     <parent>
         <groupId>de.psi.pjf</groupId>
         <artifactId>hack-cracker</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2-SNAPSHOT</version>
     </parent>
     <groupId>sample</groupId>
     <artifactId>code-that-should-compile</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.0</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>de.psi.pjf</groupId>
             <artifactId>hack-cracker-annotation</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
