@@ -2,7 +2,7 @@
 <configuration verbose="true" >
     <jira>
         <url>http://jira-bld-ppl.psi.de:8080/</url>
-        <user>akedziora</user>
-        <password>akedziora</password>
+        <user></user>
+        <password></password>
     </jira>
 </configuration>
